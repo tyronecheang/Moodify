@@ -5,22 +5,73 @@ from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from getpass import getpass
 
 load_dotenv()
 
+def validate_openweather_key(key):
+    url = "https://api.openweathermap.org/data/2.5/weather"
+    params = {
+        "q": "London",
+        "appid": key
+    }
+
+    r = requests.get(url, params=params)
+    return r.status_code == 200
+
+def validate_lastfm_key(key):
+    url = "http://ws.audioscrobbler.com/2.0/"
+    params = {
+        "method": "tag.getinfo",
+        "tag": "pop",
+        "api_key": key,
+        "format": "json"
+    }
+
+    r = requests.get(url, params=params)
+    return r.status_code == 200
+
+print("Please enter your API keys to access Moodify. Your input will be hidden for security purposes.\n")
+while True:
+    OPEN_WEATHER_KEY = getpass(
+        "OpenWeather API Key (Leave blank and tap 'enter' key to use .env): "
+    ).strip()
+
+    if not OPEN_WEATHER_KEY:
+        OPEN_WEATHER_KEY = os.getenv("OPEN_WEATHER_KEY")
+
+    if OPEN_WEATHER_KEY and validate_openweather_key(OPEN_WEATHER_KEY):
+        print("✔ OpenWeather key valid\n")
+        break
+
+    print("✖ Invalid or missing OpenWeather key. Try again.\n")
+
+while True:
+    LASTFM_KEY = getpass(
+        "LastFM API Key (Leave blank and tap 'enter' key to use .env): "
+    ).strip()
+
+    if not LASTFM_KEY:
+        LASTFM_KEY = os.getenv("LASTFM_KEY")
+
+    if LASTFM_KEY and validate_lastfm_key(LASTFM_KEY):
+        print("✔ LastFM key valid\n")
+        break
+
+    print("✖ Invalid or missing LastFM key. Try again.\n")
+
+SPOTIFY_ID_KEY = getpass("Spotify Client ID: ")
+SPOTIFY_SECRET_KEY = getpass("Spotify Client Secret: ")
 auth_manager = SpotifyOAuth(
-    client_id=os.getenv("SPOTIFY_CLIENT_ID"),
-    client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
-    redirect_uri="http://127.0.0.1:8888/callback",
-    scope="playlist-modify-public playlist-modify-private playlist-read-private",
-    cache_path=None,
-    show_dialog=True
-)
+                client_id=SPOTIFY_ID_KEY,
+                client_secret=SPOTIFY_SECRET_KEY,
+                redirect_uri="http://127.0.0.1:8888/callback",
+                scope="playlist-modify-public playlist-modify-private playlist-read-private",
+                cache_path=None,
+                show_dialog=True
+            )
 
 sp = spotipy.Spotify(auth_manager=auth_manager)
-
-OPEN_WEATHER_KEY = os.getenv("OPEN_WEATHER_KEY")
-LASTFM_KEY = os.getenv("LASTFM_KEY")
 
 
 def main():
@@ -28,7 +79,7 @@ def main():
 
     weather_data = get_weather(city)
     if not weather_data:
-        print("❌ City not found or API error")
+        print("✖ City not found or API error")
         return
 
     weather = weather_data["weather"][0]["main"]
@@ -44,8 +95,7 @@ def main():
         print(f"{s['name']} - {s['artist']}")
 
     print("\n📡 Searching Spotify + creating playlist...")
-    create_spotify_playlist(songs, weather, city)
-
+    create_spotify_playlist(songs, weather)
 
 def get_weather(location):
     url = "https://api.openweathermap.org/data/2.5/weather"
@@ -174,7 +224,7 @@ def create_spotify_playlist(songs, weather):
             print("✖ Not found:", s["name"])
 
     if not uris:
-        print("❌ No songs matched on Spotify")
+        print("✖ No songs matched on Spotify")
         return
 
     sp.playlist_add_items(playlist["id"], uris)
