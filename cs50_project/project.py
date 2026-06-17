@@ -1,30 +1,49 @@
 import os
 import requests
+import random
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
 
 load_dotenv()
 
-open_weather_key = os.getenv("OPEN_WEATHER_KEY")
+OPEN_WEATHER_KEY = os.getenv("OPEN_WEATHER_KEY")
+LASTFM_KEY = os.getenv("LASTFM_KEY")
 
 def main():
-    weather_data = get_weather("Vancouver")
-    print(weather_data["weather"][0]["main"])
-    local_time = get_local_time(weather_data)
-    low_bpm, high_bpm = weather_to_bpm(weather_data["weather"][0]["main"], local_time)
-    print("Low BPM:", low_bpm, "\nHigh BPM:", high_bpm)
+    city = input("City: ").strip()
 
+    if not city:
+        print("Please enter a city.")
+        return
+
+    weather_data = get_weather(city)
 
     if weather_data is None:
         print("City not found or API error")
         return
+
+    weather = weather_data["weather"][0]["main"]
+
+    print(f"Weather in {city.title()}: {weather}")
+
+    local_time = get_local_time(weather_data)
+    moods = weather_to_mood(weather, local_time)
+    playlist = generate_playlist(moods)
+
+    print("\n🎧 Moodify Playlist")
+
+    print(f"🌤️  Based on weather in {city}")
+    print(f"🎵 Mood tags: {', '.join(moods)}\n")
+
+    for i, song in enumerate(playlist, 1):
+        print(f"{i:02d}. {song['name']} — {song['artist']}")
 
 def get_weather(location):
     url = "https://api.openweathermap.org/data/2.5/weather"
 
     params = {
         "q": location,
-        "appid": open_weather_key,
+        "appid": OPEN_WEATHER_KEY,
         "units": "metric"
     }
 
@@ -45,34 +64,71 @@ def get_local_time(data):
         timezone(timedelta(seconds=offset))
     )
 
-def weather_to_bpm(weather, time):
-    weather_ranges = {
-        "Clear": (120, 140),
-        "Clouds": (100, 120),
-        "Rain": (80, 100),
-        "Drizzle": (85, 105),
-        "Thunderstorm": (130, 160),
-        "Snow": (70, 90),
+def weather_to_mood(weather, time):
+    mapping = {
+        "Clear": ["happy", "upbeat", "summer"],
+        "Clouds": ["calm", "chill"],
+        "Rain": ["sad", "lofi", "melancholy"],
+        "Drizzle": ["soft", "chill"],
+        "Thunderstorm": ["dark", "intense"],
+        "Snow": ["peaceful", "winter"]
     }
 
-    low, high = weather_ranges.get(weather, (90, 110))
+    moods = mapping.get(weather, ["neutral"])
 
     hour = time.hour
 
     if 5 <= hour < 12:
-        low += 10
-        high += 10
-    elif 17 <= hour < 22:
-        low -= 10
-        high -= 10
-    elif hour >= 22 or hour < 5:
-        low -= 20
-        high -= 20
+        moods.append("morning")
+    elif 12 <= hour < 17:
+        moods.append("afternoon")
+    elif 17 <= hour < 21:
+        moods.append("evening")
+    else:
+        moods.append("night")
 
-    return low, high
+    return moods
 
-def generate_playlist(bpm):
-    ...
+def is_english_song(song):
+    text = song["name"] + song["artist"]
+    return text.isascii()
+
+def get_songs_by_tag(tag):
+    url = "http://ws.audioscrobbler.com/2.0/"
+
+    params = {
+        "method": "tag.gettoptracks",
+        "tag": tag,
+        "api_key": LASTFM_KEY,
+        "format": "json"
+    }
+
+    res = requests.get(url, params=params)
+    data = res.json()
+
+    tracks = data.get("tracks", {}).get("track", [])
+
+    random.shuffle(tracks)
+
+    return [
+        {
+            "name": t["name"],
+            "artist": t["artist"]["name"]
+        }
+        for t in tracks[:10]
+    ]
+
+def generate_playlist(moods):
+    songs = []
+
+    for mood in moods:
+        songs.extend(get_songs_by_tag(mood))
+
+    songs = list({(s["name"], s["artist"]): s for s in songs}.values())
+    songs = [s for s in songs if is_english_song(s)]
+
+    random.shuffle(songs)
+    return songs[:30]
 
 if __name__ == "__main__":
     main()
