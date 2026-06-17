@@ -152,7 +152,7 @@ def search_spotify_track(song):
     return items[0]["uri"]
 
 
-def create_spotify_playlist(songs, weather, city):
+def create_spotify_playlist(songs, weather):
 
     today = datetime.now().strftime("%m-%d")
 
