@@ -81,7 +81,7 @@ while True:
     print("✖ Invalid or missing LastFM key. Try again.\n")
 
 while True:
-    SPOTIFY_ID_KEY = getpass("Spotify Client ID (Leave blank and tap 'enter' key to use .env): ").strip()
+    SPOTIFY_ID_KEY = getpass("https://developer.spotify.com/" + "\nSpotify Client ID (Leave blank and tap 'enter' key to use .env): ").strip()
     
     if not SPOTIFY_ID_KEY:
         SPOTIFY_ID_KEY = os.getenv("SPOTIFY_CLIENT_ID")
