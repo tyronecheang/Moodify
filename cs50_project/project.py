@@ -31,6 +31,26 @@ def validate_lastfm_key(key):
     r = requests.get(url, params=params)
     return r.status_code == 200
 
+def validate_spotify_key(client_id, client_secret):
+    try:
+        auth_manager = SpotifyOAuth(
+            client_id=client_id,
+            client_secret=client_secret,
+            redirect_uri="http://127.0.0.1:8888/callback",
+            scope="user-read-private",
+            cache_path=None,
+            show_dialog=False
+        )
+
+        sp = spotipy.Spotify(auth_manager=auth_manager)
+
+        sp.current_user()
+        return True
+
+    except Exception as e:
+        print("Spotify auth error:", e)
+        return False
+
 print("Please enter your API keys to access Moodify. Your input will be hidden for security purposes.\n")
 while True:
     OPEN_WEATHER_KEY = getpass(
@@ -60,16 +80,31 @@ while True:
 
     print("✖ Invalid or missing LastFM key. Try again.\n")
 
-SPOTIFY_ID_KEY = getpass("Spotify Client ID: ")
-SPOTIFY_SECRET_KEY = getpass("Spotify Client Secret: ")
+while True:
+    SPOTIFY_ID_KEY = getpass("Spotify Client ID (Leave blank and tap 'enter' key to use .env): ").strip()
+    
+    if not SPOTIFY_ID_KEY:
+        SPOTIFY_ID_KEY = os.getenv("SPOTIFY_CLIENT_ID")
+    
+    SPOTIFY_SECRET_KEY = getpass("Spotify Client Secret (Leave blank and tap 'enter' key to use .env): ").strip()
+
+    if not SPOTIFY_SECRET_KEY:
+        SPOTIFY_SECRET_KEY = os.getenv("SPOTIFY_CLIENT_SECRET")
+    
+    if SPOTIFY_ID_KEY and SPOTIFY_SECRET_KEY and validate_spotify_key(SPOTIFY_ID_KEY, SPOTIFY_SECRET_KEY):
+        print("✔ Spotify ID and secret valid\n")
+        break
+
+    print("✖ Invalid or missing Spotify ID and/or secret. Try again.\n")
+
 auth_manager = SpotifyOAuth(
-                client_id=SPOTIFY_ID_KEY,
-                client_secret=SPOTIFY_SECRET_KEY,
-                redirect_uri="http://127.0.0.1:8888/callback",
-                scope="playlist-modify-public playlist-modify-private playlist-read-private",
-                cache_path=None,
-                show_dialog=True
-            )
+                    client_id=SPOTIFY_ID_KEY,
+                    client_secret=SPOTIFY_SECRET_KEY,
+                    redirect_uri="http://127.0.0.1:8888/callback",
+                    scope="playlist-modify-public playlist-modify-private playlist-read-private",
+                    cache_path=None,
+                    show_dialog=True
+                )
 
 sp = spotipy.Spotify(auth_manager=auth_manager)
 
@@ -163,6 +198,10 @@ def get_songs_by_tag(tag):
     }
 
     res = requests.get(url, params=params)
+
+    if res.status_code != 200:
+        return []
+
     data = res.json()
 
     tracks = data.get("tracks", {}).get("track", [])
