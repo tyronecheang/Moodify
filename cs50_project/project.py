@@ -54,7 +54,7 @@ def validate_spotify_key(client_id, client_secret):
 print("Please enter your API keys to access Moodify. Your input will be hidden for security purposes.\n")
 while True:
     OPEN_WEATHER_KEY = getpass(
-        "OpenWeather API Key (Leave blank and tap 'enter' key to use .env): "
+        "https://openweathermap.org" + "\nOpenWeather API Key (Leave blank and tap 'enter' key to use .env): "
     ).strip()
 
     if not OPEN_WEATHER_KEY:
@@ -68,7 +68,7 @@ while True:
 
 while True:
     LASTFM_KEY = getpass(
-        "LastFM API Key (Leave blank and tap 'enter' key to use .env): "
+        "https://www.last.fm/api" + "\nLastFM API Key (Leave blank and tap 'enter' key to use .env): "
     ).strip()
 
     if not LASTFM_KEY:
