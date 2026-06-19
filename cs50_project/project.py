@@ -8,6 +8,9 @@ from spotipy.oauth2 import SpotifyOAuth
 from getpass import getpass
 
 load_dotenv()
+OPEN_WEATHER_KEY = None
+LASTFM_KEY = None
+sp = None
 
 def validate_openweather_key(key):
     url = "https://api.openweathermap.org/data/2.5/weather"
@@ -37,9 +40,9 @@ def validate_spotify_key(client_id, client_secret):
             client_id=client_id,
             client_secret=client_secret,
             redirect_uri="http://127.0.0.1:8888/callback",
-            scope="user-read-private",
-            cache_path=None,
-            show_dialog=False
+            scope="playlist-modify-public playlist-modify-private playlist-read-private",
+            cache_path=".spotify_cache",
+            show_dialog=True
         )
 
         sp = spotipy.Spotify(auth_manager=auth_manager)
@@ -51,65 +54,70 @@ def validate_spotify_key(client_id, client_secret):
         print("Spotify auth error:", e)
         return False
 
-print("Please enter your API keys to access Moodify. Your input will be hidden for security purposes.\n")
-while True:
-    OPEN_WEATHER_KEY = getpass(
-        "https://openweathermap.org" + "\nOpenWeather API Key (Leave blank and tap 'enter' key to use .env): "
-    ).strip()
+def initialize():
+    global OPEN_WEATHER_KEY
+    global LASTFM_KEY
+    global sp
+    print("Please enter your API keys to access Moodify. Your input will be hidden for security purposes.\n")
+    while True:
+        OPEN_WEATHER_KEY = getpass(
+            "https://openweathermap.org" + "\nOpenWeather API Key (Leave blank and tap 'enter' key to use .env): "
+        ).strip()
 
-    if not OPEN_WEATHER_KEY:
-        OPEN_WEATHER_KEY = os.getenv("OPEN_WEATHER_KEY")
+        if not OPEN_WEATHER_KEY:
+            OPEN_WEATHER_KEY = os.getenv("OPEN_WEATHER_KEY")
 
-    if OPEN_WEATHER_KEY and validate_openweather_key(OPEN_WEATHER_KEY):
-        print("✔ OpenWeather key valid\n")
-        break
+        if OPEN_WEATHER_KEY and validate_openweather_key(OPEN_WEATHER_KEY):
+            print("✔ OpenWeather key valid\n")
+            break
 
-    print("✖ Invalid or missing OpenWeather key. Try again.\n")
+        print("✖ Invalid or missing OpenWeather key. Try again.\n")
 
-while True:
-    LASTFM_KEY = getpass(
-        "https://www.last.fm/api" + "\nLastFM API Key (Leave blank and tap 'enter' key to use .env): "
-    ).strip()
+    while True:
+        LASTFM_KEY = getpass(
+            "https://www.last.fm/api" + "\nLastFM API Key (Leave blank and tap 'enter' key to use .env): "
+        ).strip()
 
-    if not LASTFM_KEY:
-        LASTFM_KEY = os.getenv("LASTFM_KEY")
+        if not LASTFM_KEY:
+            LASTFM_KEY = os.getenv("LASTFM_KEY")
 
-    if LASTFM_KEY and validate_lastfm_key(LASTFM_KEY):
-        print("✔ LastFM key valid\n")
-        break
+        if LASTFM_KEY and validate_lastfm_key(LASTFM_KEY):
+            print("✔ LastFM key valid\n")
+            break
 
-    print("✖ Invalid or missing LastFM key. Try again.\n")
+        print("✖ Invalid or missing LastFM key. Try again.\n")
 
-while True:
-    SPOTIFY_ID_KEY = getpass("https://developer.spotify.com/" + "\nSpotify Client ID (Leave blank and tap 'enter' key to use .env): ").strip()
-    
-    if not SPOTIFY_ID_KEY:
-        SPOTIFY_ID_KEY = os.getenv("SPOTIFY_CLIENT_ID")
-    
-    SPOTIFY_SECRET_KEY = getpass("Spotify Client Secret (Leave blank and tap 'enter' key to use .env): ").strip()
+    while True:
+        SPOTIFY_ID_KEY = getpass("https://developer.spotify.com/" + "\nSpotify Client ID (Leave blank and tap 'enter' key to use .env): ").strip()
+        
+        if not SPOTIFY_ID_KEY:
+            SPOTIFY_ID_KEY = os.getenv("SPOTIFY_CLIENT_ID")
+        
+        SPOTIFY_SECRET_KEY = getpass("Spotify Client Secret (Leave blank and tap 'enter' key to use .env): ").strip()
 
-    if not SPOTIFY_SECRET_KEY:
-        SPOTIFY_SECRET_KEY = os.getenv("SPOTIFY_CLIENT_SECRET")
-    
-    if SPOTIFY_ID_KEY and SPOTIFY_SECRET_KEY and validate_spotify_key(SPOTIFY_ID_KEY, SPOTIFY_SECRET_KEY):
-        print("✔ Spotify ID and secret valid\n")
-        break
+        if not SPOTIFY_SECRET_KEY:
+            SPOTIFY_SECRET_KEY = os.getenv("SPOTIFY_CLIENT_SECRET")
+        
+        if SPOTIFY_ID_KEY and SPOTIFY_SECRET_KEY and validate_spotify_key(SPOTIFY_ID_KEY, SPOTIFY_SECRET_KEY):
+            print("✔ Spotify ID and secret valid\n")
+            break
 
-    print("✖ Invalid or missing Spotify ID and/or secret. Try again.\n")
+        print("✖ Invalid or missing Spotify ID and/or secret. Try again.\n")
 
-auth_manager = SpotifyOAuth(
-                    client_id=SPOTIFY_ID_KEY,
-                    client_secret=SPOTIFY_SECRET_KEY,
-                    redirect_uri="http://127.0.0.1:8888/callback",
-                    scope="playlist-modify-public playlist-modify-private playlist-read-private",
-                    cache_path=None,
-                    show_dialog=True
-                )
+    auth_manager = SpotifyOAuth(
+                        client_id=SPOTIFY_ID_KEY,
+                        client_secret=SPOTIFY_SECRET_KEY,
+                        redirect_uri="http://127.0.0.1:8888/callback",
+                        scope="playlist-modify-public playlist-modify-private playlist-read-private",
+                        cache_path=".spotify_cache",
+                        show_dialog=True
+                    )
 
-sp = spotipy.Spotify(auth_manager=auth_manager)
+    sp = spotipy.Spotify(auth_manager=auth_manager)
 
 
 def main():
+    initialize()
     city = input("City: ").strip()
 
     weather_data = get_weather(city)
