@@ -128,7 +128,7 @@ def main():
     weather = weather_data["weather"][0]["main"]
     local_time = get_local_time(weather_data)
 
-    print(f"\n🌤️ Weather: {weather}")
+    print(f"\n🌤️  Weather: {weather}")
 
     moods = weather_to_mood(weather, local_time)
     songs = generate_playlist(moods)
